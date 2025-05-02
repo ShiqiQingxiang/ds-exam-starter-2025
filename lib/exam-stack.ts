@@ -41,6 +41,9 @@ export class ExamStack extends cdk.Stack {
       },
     });
 
+    // Grant Lambda function read access to the DynamoDB table
+    table.grantReadData(question1Fn);
+
     new custom.AwsCustomResource(this, "moviesddbInitData", {
       onCreate: {
         service: "DynamoDB",
@@ -72,6 +75,15 @@ export class ExamStack extends cdk.Stack {
 
     const anEndpoint = api.root.addResource("patha");
 
+    // Add new API route /crew/movies/{movieId}
+    const crewResource = api.root.addResource("crew");
+    const moviesResource = crewResource.addResource("movies");
+    const movieIdResource = moviesResource.addResource("{movieId}");
+    
+    // Configure GET method using question1Fn to handle requests
+    movieIdResource.addMethod("GET", new apig.LambdaIntegration(question1Fn, {
+      proxy: true
+    }));
 
     // ==================================
     // Question 2 - Event-Driven architecture

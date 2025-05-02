@@ -88,24 +88,23 @@ export class ExamStack extends cdk.Stack {
     // ==================================
     // Question 2 - Event-Driven architecture
 
-     const bucket = new s3.Bucket(this, "exam-bucket", {
+    const bucket = new s3.Bucket(this, "exam-bucket", {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       publicReadAccess: false,
     });
 
+    // Create SNS Topic 1
     const topic1 = new sns.Topic(this, "Topic1", {
       displayName: "Exam topic",
     });
     
-    const queueB = new sqs.Queue(this, "QueueB", {
-      receiveMessageWaitTime: cdk.Duration.seconds(5),
-    });
-
-    const queueA = new sqs.Queue(this, "queueA", {
+    // Create Queue A 
+    const queueA = new sqs.Queue(this, "QueueA", {
       receiveMessageWaitTime: cdk.Duration.seconds(5),
     });
     
+    // Create Lambda functions
     const lambdaXFn = new lambdanode.NodejsFunction(this, "LambdaXFn", {
       architecture: lambda.Architecture.ARM_64,
       runtime: lambda.Runtime.NODEJS_22_X,
@@ -128,6 +127,18 @@ export class ExamStack extends cdk.Stack {
       },
     });
     
+    //Part A: EDA architecture:
+    
+    // Subscribe Queue A to Topic 1
+    topic1.addSubscription(new subs.SqsSubscription(queueA));
+    
+    // Subscribe Lambda Y directly to Topic 1
+    topic1.addSubscription(new subs.LambdaSubscription(lambdaYFn));
+    
+    // Configure Lambda X to process messages from Queue A
+    lambdaXFn.addEventSource(new events.SqsEventSource(queueA, {
+      batchSize: 10, 
+    }));
   }
 }
   

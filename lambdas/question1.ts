@@ -15,9 +15,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
       const movieId = event.pathParameters.movieId;
       const role = event.queryStringParameters?.role;
       
-      // Case 1: When role is provided - get specific crew member
+      // Part A: When role is provided, get specific crew member
       if (role) {
-        // Query DynamoDB for specific role
+
         const command = new GetCommand({
           TableName: process.env.TABLE_NAME,
           Key: {
@@ -48,9 +48,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
           body: JSON.stringify(response.Item),
         };
       } 
-      // Case 2: When role is not provided - get all crew members for the movie
+      // Part B: When role is not provided, get all crew members for the movie
       else {
-        // Query DynamoDB for all roles for this movie
+
         const command = new QueryCommand({
           TableName: process.env.TABLE_NAME,
           KeyConditionExpression: "movieId = :movieId",

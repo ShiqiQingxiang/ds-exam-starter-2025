@@ -1,7 +1,7 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 const client = createDDbDocClient();
 
@@ -15,48 +15,72 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
       const movieId = event.pathParameters.movieId;
       const role = event.queryStringParameters?.role;
       
-      if (!movieId || !role) {
-        return {
-          statusCode: 400,
-          headers: {
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ 
-            message: "The movieId and role parameters must be provided" 
-          }),
-        };
-      }
-      
-      // Query DynamoDB
-      const command = new GetCommand({
-        TableName: process.env.TABLE_NAME,
-        Key: {
-          movieId: parseInt(movieId),
-          role: role
+      // Case 1: When role is provided - get specific crew member
+      if (role) {
+        // Query DynamoDB for specific role
+        const command = new GetCommand({
+          TableName: process.env.TABLE_NAME,
+          Key: {
+            movieId: parseInt(movieId),
+            role: role
+          }
+        });
+        
+        const response = await client.send(command);
+        
+        if (!response.Item) {
+          return {
+            statusCode: 404,
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ 
+              message: `No role ${role} found for movie ID ${movieId}` 
+            }),
+          };
         }
-      });
-      
-      const response = await client.send(command);
-      
-      if (!response.Item) {
+
         return {
-          statusCode: 404,
+          statusCode: 200,
           headers: {
             "content-type": "application/json",
           },
-          body: JSON.stringify({ 
-            message: `No role ${role} found for movie ID ${movieId}` 
-          }),
+          body: JSON.stringify(response.Item),
+        };
+      } 
+      // Case 2: When role is not provided - get all crew members for the movie
+      else {
+        // Query DynamoDB for all roles for this movie
+        const command = new QueryCommand({
+          TableName: process.env.TABLE_NAME,
+          KeyConditionExpression: "movieId = :movieId",
+          ExpressionAttributeValues: {
+            ":movieId": parseInt(movieId)
+          }
+        });
+        
+        const response = await client.send(command);
+        
+        if (!response.Items || response.Items.length === 0) {
+          return {
+            statusCode: 404,
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ 
+              message: `No crew members found for movie ID ${movieId}` 
+            }),
+          };
+        }
+
+        return {
+          statusCode: 200,
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(response.Items),
         };
       }
-
-      return {
-        statusCode: 200,
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(response.Item),
-      };
     }
 
     // Handle other requests

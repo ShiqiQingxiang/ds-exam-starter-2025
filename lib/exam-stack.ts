@@ -53,7 +53,7 @@ export class ExamStack extends cdk.Stack {
             [table.tableName]: generateBatch(movieCrew),
           },
         },
-        physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), //.of(Date.now().toString()),
+        physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), 
       },
       policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [table.tableArn],

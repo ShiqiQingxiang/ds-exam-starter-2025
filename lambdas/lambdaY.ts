@@ -1,4 +1,7 @@
 import { SNSHandler } from "aws-lambda";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
+
+const sqsClient = new SQSClient({ region: process.env.REGION });
 
 // Lambda Y is subscribed to SNS Topic 1 directly (Only receives messages with country NOT Ireland or China)
 export const handler: SNSHandler = async (event, context) => {
@@ -19,6 +22,37 @@ export const handler: SNSHandler = async (event, context) => {
         
         console.log(`Processing message for ${messageContent.name} from ${messageContent.address.country}`);
         
+        // Part C: Check if email property is missing
+        if (!messageContent.email) {
+          console.log(`Message missing email property, sending to Queue B`);
+          
+          // Send the message to Queue B
+          try {
+            const queueBUrl = process.env.QUEUE_B_URL;
+            
+            if (!queueBUrl) {
+              throw new Error("Queue B URL not configured in environment variables");
+            }
+            
+            await sqsClient.send(new SendMessageCommand({
+              QueueUrl: queueBUrl,
+              MessageBody: JSON.stringify(messageContent),
+              MessageAttributes: {
+                Source: {
+                  DataType: "String",
+                  StringValue: "LambdaY"
+                }
+              }
+            }));
+            
+            console.log(`Successfully sent message to Queue B`);
+          } catch (sqsError) {
+            console.error("Error sending message to Queue B:", sqsError);
+            throw sqsError;
+          }
+        } else {
+          console.log(`Message has email property: ${messageContent.email}, not sending to Queue B`);
+        }
       }
     }
     

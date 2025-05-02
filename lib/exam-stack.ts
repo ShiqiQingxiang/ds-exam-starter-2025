@@ -104,6 +104,11 @@ export class ExamStack extends cdk.Stack {
       receiveMessageWaitTime: cdk.Duration.seconds(5),
     });
     
+    // Part C: Create Queue B for messages without email property
+    const queueB = new sqs.Queue(this, "QueueB", {
+      receiveMessageWaitTime: cdk.Duration.seconds(5),
+    });
+    
     // Create Lambda functions
     const lambdaXFn = new lambdanode.NodejsFunction(this, "LambdaXFn", {
       architecture: lambda.Architecture.ARM_64,
@@ -124,8 +129,11 @@ export class ExamStack extends cdk.Stack {
       memorySize: 128,
       environment: {
         REGION: "eu-west-1",
+        QUEUE_B_URL: queueB.queueUrl,
       },
     });
+    
+    queueB.grantSendMessages(lambdaYFn);
 
     // Part B: Message filtering
     // Subscribe Queue A to Topic 1 - only for messages with country = Ireland or China

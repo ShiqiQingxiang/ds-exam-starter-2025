@@ -1,6 +1,6 @@
 import { SNSHandler } from "aws-lambda";
 
-// Lambda Y is subscribed to SNS Topic 1 directly
+// Lambda Y is subscribed to SNS Topic 1 directly (Only receives messages with country NOT Ireland or China)
 export const handler: SNSHandler = async (event, context) => {
   try {
     console.log("Lambda Y received SNS event: ", JSON.stringify(event));
@@ -10,7 +10,16 @@ export const handler: SNSHandler = async (event, context) => {
       console.log("SNS message ID:", record.Sns.MessageId);
       console.log("SNS message:", record.Sns.Message);
       
-      // Process the SNS message here...
+      const messageContent = JSON.parse(record.Sns.Message);
+      
+      // Verify this is a message with country not Ireland or China
+      if (messageContent.address && 
+          messageContent.address.country !== "Ireland" && 
+          messageContent.address.country !== "China") {
+        
+        console.log(`Processing message for ${messageContent.name} from ${messageContent.address.country}`);
+        
+      }
     }
     
   } catch (error: any) {

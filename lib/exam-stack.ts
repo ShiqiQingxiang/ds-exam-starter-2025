@@ -126,14 +126,25 @@ export class ExamStack extends cdk.Stack {
         REGION: "eu-west-1",
       },
     });
+
+    // Part B: Message filtering
+    // Subscribe Queue A to Topic 1 - only for messages with country = Ireland or China
+    topic1.addSubscription(new subs.SqsSubscription(queueA, {
+      filterPolicy: {
+        "address.country": sns.SubscriptionFilter.stringFilter({
+          allowlist: ["Ireland", "China"]
+        })
+      }
+    }));
     
-    //Part A: EDA architecture:
-    
-    // Subscribe Queue A to Topic 1
-    topic1.addSubscription(new subs.SqsSubscription(queueA));
-    
-    // Subscribe Lambda Y directly to Topic 1
-    topic1.addSubscription(new subs.LambdaSubscription(lambdaYFn));
+    // Subscribe Lambda Y directly to Topic 1 - only for messages with country NOT Ireland or China
+    topic1.addSubscription(new subs.LambdaSubscription(lambdaYFn, {
+      filterPolicy: {
+        "address.country": sns.SubscriptionFilter.stringFilter({
+          denylist: ["Ireland", "China"]
+        })
+      }
+    }));
     
     // Configure Lambda X to process messages from Queue A
     lambdaXFn.addEventSource(new events.SqsEventSource(queueA, {

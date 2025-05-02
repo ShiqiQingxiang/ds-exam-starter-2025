@@ -1,6 +1,6 @@
 import { SQSHandler } from "aws-lambda";
 
-// Lambda X processes messages from Queue A
+// Lambda X processes messages from Queue A (Only receives messages with country = Ireland or China)
 export const handler: SQSHandler = async (event, context) => {
   try {
     console.log("Lambda X received event: ", JSON.stringify(event));
@@ -15,7 +15,16 @@ export const handler: SQSHandler = async (event, context) => {
       if (body.Message) {
         console.log("SNS message content:", body.Message);
         
-        // Process the message here...
+        const messageContent = JSON.parse(body.Message);
+        
+        // Verify this is a message with country = Ireland or China
+        if (messageContent.address && 
+            (messageContent.address.country === "Ireland" || 
+             messageContent.address.country === "China")) {
+          
+          console.log(`Processing message for ${messageContent.name} from ${messageContent.address.country}`);
+          
+        }
       }
     }
     
